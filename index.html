@@ -373,6 +373,8 @@ function renderSettings(){
     <div class="btnrow">${encrypted ? `<button type="button" class="btn" data-act="setPin">Đổi mã</button><button type="button" class="btn danger" data-act="removePin">Tắt mã khóa</button>` : `<button type="button" class="btn primary" data-act="setPin">Đặt mã khóa</button>`}</div></div>`;
   h += `<div class="card"><h2>Sao lưu dữ liệu</h2><p>Lần gần nhất: <b>${last}</b>. ${encrypted ? "File sao lưu được mã hóa bằng mã khóa hiện tại." : "Nên đặt mã khóa trước để file sao lưu cũng được mã hóa."} Cất file vào iCloud Drive.</p>
     <div class="btnrow"><button type="button" class="btn primary" data-act="backup">Sao lưu toàn bộ</button><button type="button" class="btn" data-act="restore">Khôi phục</button></div></div>`;
+  h += `<div class="card"><h2>Nhập từ file Excel</h2><p>Nhập danh sách khách hàng và sổ tiết kiệm từ file Excel (.xlsx) hoặc CSV soạn trên máy tính. Mỗi dòng là một sổ. Khách hàng trùng số CCCD được gộp chung, sổ trùng số STK được cập nhật.</p>
+    <div class="btnrow"><button type="button" class="btn primary" data-act="import">Chọn file để nhập</button></div></div>`;
   h += `<div class="card"><h2>Xuất ra Excel</h2><p>Danh sách toàn bộ sổ đang mở kèm thông tin khách hàng, dạng CSV mở bằng Excel. File này không mã hóa, cần giữ cẩn thận.</p><button type="button" class="btn" data-act="csv">Xuất danh sách sổ</button></div>`;
   h += `<div class="card"><h2>Cài lên iPhone</h2><p>${isStandalone() ? "Ứng dụng đang chạy từ màn hình chính, dùng được khi không có mạng." : "Mở bằng Safari, bấm Chia sẻ → <b>Thêm vào MH chính</b>, rồi luôn mở từ biểu tượng đó."}</p></div>`;
   h += `<div class="card"><h2>Xóa dữ liệu</h2><p>${S.customers.length} khách hàng, ${S.accounts.length} sổ đang lưu.</p><button type="button" class="btn danger" data-act="wipe">Xóa toàn bộ</button></div>`;
@@ -653,6 +655,168 @@ function restore(){
   });
 }
 
+/* ---------- Nhập từ Excel ---------- */
+let xlsxLoading = null;
+function loadXLSX(){
+  if (window.XLSX) return Promise.resolve();
+  if (xlsxLoading) return xlsxLoading;
+  const local = location.protocol === "https:" && window.self === window.top;
+  xlsxLoading = new Promise((res, rej) => {
+    const sc = document.createElement("script");
+    sc.src = local ? "xlsx.full.min.js" : "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    sc.onload = () => res(); sc.onerror = () => { xlsxLoading = null; rej(new Error("load")); };
+    document.head.appendChild(sc);
+  });
+  return xlsxLoading;
+}
+const norm = v => String(v ?? "").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").toLowerCase().replace(/\s+/g," ").trim();
+const COLS = [
+  ["name",   h => /ho ten|ten khach|khach hang|ho va ten/.test(h)],
+  ["idNo",   h => /cccd|cmnd|can cuoc|so giay to|dinh danh/.test(h) && !/ngay/.test(h)],
+  ["idDate", h => /ngay cap/.test(h)],
+  ["address",h => /dia chi/.test(h)],
+  ["phone",  h => /dien thoai|di dong|sdt|so dt/.test(h)],
+  ["accNo",  h => /stk|so so|so tai khoan|ma so|so the/.test(h)],
+  ["amount", h => /so du|so tien|tien gui/.test(h)],
+  ["term",   h => /ky han/.test(h)],
+  ["rate",   h => /lai suat/.test(h)],
+  ["open",   h => /ngay mo|ngay gui/.test(h)],
+  ["due",    h => /den han|dao han/.test(h)],
+  ["status", h => /tinh trang|trang thai/.test(h)],
+  ["note",   h => /ghi chu/.test(h)]
+];
+function toISO(v){
+  if (v == null || v === "") return "";
+  if (v instanceof Date && !isNaN(v)) return iso(new Date(v.getTime() + 43200000));
+  if (typeof v === "number" && v > 20000 && v < 80000) { const d = new Date(Math.round((v - 25569) * 86400000)); return iso(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }
+  const s = String(v).trim();
+  let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/); if (m) return m[3] + "-" + pad(+m[2]) + "-" + pad(+m[1]);
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return m[1] + "-" + pad(+m[2]) + "-" + pad(+m[3]);
+  return "";
+}
+function toMoney(v){
+  if (typeof v === "number") return Math.round(v);
+  const s = String(v ?? "").trim(); if (!s) return 0;
+  return +s.replace(/[^\d]/g, "") || 0;
+}
+function toTerm(v){
+  if (typeof v === "number") return Math.round(v);
+  const s = norm(v); if (!s || /khong ky han/.test(s)) return 0;
+  const n = parseFloat(s.replace(",", ".")); if (isNaN(n)) return 0;
+  return /nam/.test(s) ? Math.round(n * 12) : Math.round(n);
+}
+function toRate(v){
+  if (v == null || v === "") return "";
+  let n = typeof v === "number" ? v : parseFloat(String(v).replace("%","").replace(",",".").trim());
+  if (isNaN(n)) return "";
+  if (n > 0 && n < 1) n = n * 100;
+  return Math.round(n * 100) / 100;
+}
+function fixId(v){ let s = String(v ?? "").replace(/\s/g,""); if (typeof v === "number" && s.length === 11) s = "0" + s; return s; }
+function fixPhone(v){ let s = String(v ?? "").trim(); if (typeof v === "number" && s.length === 9) s = "0" + s; return s; }
+function parseRows(rows){
+  let hi = -1, map = {};
+  for (let i = 0; i < Math.min(rows.length, 30); i++) {
+    const m = {};
+    (rows[i] || []).forEach((cell, j) => { const h = norm(cell); if (!h) return; for (const [k, test] of COLS) if (m[k] == null && test(h)) { m[k] = j; break; } });
+    if (m.accNo != null && m.amount != null) { hi = i; map = m; break; }
+  }
+  if (hi < 0) return {error:"Không tìm thấy dòng tiêu đề. File cần có ít nhất cột “Số STK” và cột “Số dư”."};
+  const out = [], bad = [];
+  for (let i = hi + 1; i < rows.length; i++) {
+    const r = rows[i] || []; const get = k => map[k] == null ? "" : r[map[k]];
+    if (!r.some(v => v !== "" && v != null)) continue;
+    const accNo = String(get("accNo") ?? "").trim().toUpperCase();
+    const nameN = norm(get("name"));
+    if (!accNo && /tong/.test(norm(r.join(" ")))) continue;
+    if (!accNo && !nameN) continue;
+    const rec = {
+      name:String(get("name") ?? "").trim(), idNo:fixId(get("idNo")), idDate:toISO(get("idDate")),
+      address:String(get("address") ?? "").trim(), phone:fixPhone(get("phone")),
+      accNo, amount:toMoney(get("amount")), term:toTerm(get("term")), rate:toRate(get("rate")),
+      open:toISO(get("open")), due:toISO(get("due")), status:norm(get("status")), note:String(get("note") ?? "").trim(), row:i + 1
+    };
+    if (!rec.accNo) { bad.push("Dòng " + rec.row + ": thiếu số STK"); continue; }
+    if (!rec.amount) { bad.push("Dòng " + rec.row + " (" + rec.accNo + "): thiếu số dư"); continue; }
+    if (!rec.open) { bad.push("Dòng " + rec.row + " (" + rec.accNo + "): thiếu hoặc sai ngày mở"); continue; }
+    if (!rec.name && !rec.idNo) { bad.push("Dòng " + rec.row + " (" + rec.accNo + "): thiếu họ tên khách hàng"); continue; }
+    if (!rec.due && rec.term) rec.due = addMonths(rec.open, rec.term);
+    out.push(rec);
+  }
+  return {recs:out, bad, cols:Object.keys(map)};
+}
+function planImport(recs){
+  const keyOf = r => r.idNo ? "id:" + r.idNo.replace(/\s/g,"") : "nm:" + norm(r.name);
+  const custIdx = new Map(S.customers.map(c => [c.idNo ? "id:" + c.idNo.replace(/\s/g,"") : "nm:" + norm(c.name), c]));
+  const accIdx = new Map(S.accounts.map(a => [a.accNo.replace(/\s/g,""), a]));
+  let newC = 0, updA = 0, newA = 0; const seenC = new Set(), seenA = new Set();
+  recs.forEach(r => { const k = keyOf(r); if (!custIdx.has(k) && !seenC.has(k)) newC++; seenC.add(k);
+    const a = r.accNo.replace(/\s/g,""); if (accIdx.has(a) || seenA.has(a)) updA++; else newA++; seenA.add(a); });
+  return {newC, newA, updA, custCount:seenC.size, keyOf, custIdx, accIdx};
+}
+function applyImport(recs){
+  const p = planImport(recs);
+  recs.forEach(r => {
+    const k = p.keyOf(r); let c = p.custIdx.get(k);
+    if (!c) { c = {id:uid(), name:r.name || "(Chưa có tên)", idNo:r.idNo, idDate:r.idDate, address:r.address, phone:r.phone, note:""}; S.customers.push(c); p.custIdx.set(k, c); }
+    else { ["name","idNo","idDate","address","phone"].forEach(f => { if (r[f] && !c[f]) c[f] = r[f]; }); }
+    const closed = /tat toan/.test(r.status);
+    const closeDate = closed ? (toISO((r.status.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1]) || todayISO()) : "";
+    const a = p.accIdx.get(r.accNo.replace(/\s/g,""));
+    const data = {customerId:c.id, accNo:r.accNo, amount:r.amount, term:r.term, rate:r.rate, open:r.open, due:r.due, status:closed ? "closed" : "open", closeDate, note:r.note || (a ? a.note : "")};
+    if (a) Object.assign(a, data); else { const na = {id:uid(), history:[], ...data}; S.accounts.push(na); p.accIdx.set(r.accNo.replace(/\s/g,""), na); }
+  });
+  return p;
+}
+function importSheet(){
+  openSheet(`<h2>Nhập từ file Excel</h2><p class="sub" style="margin:0">Chọn file .xlsx hoặc .csv. Ứng dụng tự nhận các cột: Họ tên, CCCD, Ngày cấp, Địa chỉ, Số di động, Số STK, Số dư, Kỳ hạn, Lãi suất, Ngày mở, Ngày đến hạn, Ghi chú. Thiếu cột Ngày đến hạn thì tự tính theo kỳ hạn.</p>
+    <div class="field"><label for="i-file">File dữ liệu</label><input id="i-file" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"></div>
+    <div class="field" id="i-sheetf" hidden><label for="i-sheet">Trang tính</label><select id="i-sheet"></select></div>
+    <div id="i-res"></div>
+    <div class="actions"><button type="button" class="btn" data-close>Hủy</button><button type="button" class="btn primary" id="i-go" disabled>Nhập dữ liệu</button></div>`,
+  (el, close) => {
+    const g = s => el.querySelector(s); let wb = null, parsed = null;
+    const show = () => {
+      const ws = wb.Sheets[g("#i-sheet").value];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:""});
+      parsed = parseRows(rows);
+      if (parsed.error) { g("#i-res").innerHTML = `<p class="err">${esc(parsed.error)}</p>`; g("#i-go").disabled = true; return; }
+      const p = planImport(parsed.recs), total = parsed.recs.reduce((s,r)=>s+r.amount,0);
+      g("#i-res").innerHTML = `<div class="calc" style="flex-direction:column;gap:4px">
+          <span><b>${parsed.recs.length}</b> sổ hợp lệ · tổng <b>${money(total)} đ</b></span>
+          <span>${p.custCount} khách hàng (${p.newC} mới) · ${p.newA} sổ mới · ${p.updA} sổ trùng STK sẽ được cập nhật</span>
+          ${S.demo ? `<span>Dữ liệu mẫu sẽ được xóa trước khi nhập.</span>` : ""}</div>
+        ${parsed.bad.length ? `<div class="hist"><b class="err">${parsed.bad.length} dòng bị bỏ qua</b>${parsed.bad.slice(0,12).map(b => `<div>${esc(b)}</div>`).join("")}${parsed.bad.length > 12 ? `<div>… và ${parsed.bad.length - 12} dòng khác</div>` : ""}</div>` : ""}
+        ${parsed.recs.length ? `<div class="hist"><b>Xem trước</b>${parsed.recs.slice(0,5).map(r => `<div>${esc(r.accNo)} · ${esc(r.name)} · ${money(r.amount)} · ${termTxt(r.term)} · ${rateTxt(r.rate) || "—"} · ${fmt(r.open)} → ${fmt(r.due) || "—"}</div>`).join("")}</div>` : ""}`;
+      g("#i-go").disabled = !parsed.recs.length;
+    };
+    g("#i-file").addEventListener("change", async e => {
+      const f = e.target.files[0]; if (!f) return;
+      g("#i-res").innerHTML = `<p class="sub" style="margin:0">Đang đọc file…</p>`; g("#i-go").disabled = true;
+      try { await loadXLSX(); } catch(_) { g("#i-res").innerHTML = `<p class="err">Chưa tải được bộ đọc Excel. Hãy mở ứng dụng khi có mạng một lần để máy lưu lại, rồi thử lại.</p>`; return; }
+      const rd = new FileReader();
+      rd.onload = () => {
+        const isCsv = /\.csv$/i.test(f.name) || f.type === "text/csv";
+        try { wb = isCsv ? XLSX.read(new TextDecoder("utf-8").decode(rd.result), {type:"string", raw:true}) : XLSX.read(new Uint8Array(rd.result), {type:"array", cellDates:false}); }
+        catch(_) { g("#i-res").innerHTML = `<p class="err">Không đọc được file. Hãy lưu lại file dạng .xlsx hoặc .csv rồi thử lại.</p>`; return; }
+        const names = wb.SheetNames;
+        g("#i-sheet").innerHTML = names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+        g("#i-sheetf").hidden = names.length < 2;
+        show();
+      };
+      rd.readAsArrayBuffer(f);
+    });
+    g("#i-sheet").addEventListener("change", () => wb && show());
+    g("#i-go").onclick = async () => {
+      if (!parsed || !parsed.recs.length) return;
+      if (S.demo) { S.customers = []; S.accounts = []; S.demo = false; }
+      const p = applyImport(parsed.recs);
+      ui.view = "kh"; ui.cust = null; await save(); close(); render();
+      toast("Đã nhập " + parsed.recs.length + " sổ, " + p.newC + " khách hàng mới");
+    };
+  });
+}
+
 /* ---------- PIN ---------- */
 function setPin(){
   openSheet(`<h2>${encrypted ? "Đổi mã khóa" : "Đặt mã khóa"}</h2><p class="sub" style="margin:0">Dùng 6 chữ số trở lên. <b>Nếu quên mã sẽ không mở được dữ liệu</b>, chỉ có thể khôi phục từ bản sao lưu. Hãy ghi mã ra nơi an toàn.</p>
@@ -730,6 +894,7 @@ document.addEventListener("click", async e => {
   else if (act === "backup") backup();
   else if (act === "restore") restore();
   else if (act === "csv") csv();
+  else if (act === "import") importSheet();
   else if (act === "editOrg") editOrg();
   else if (act === "setPin") setPin();
   else if (act === "removePin") removePin();
