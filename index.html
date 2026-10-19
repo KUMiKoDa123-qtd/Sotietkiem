@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sổ Tiết Kiệm">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Sổ Tiết Kiệm</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sổ theo dõi tiền gửi — một cột, thanh điều hướng đáy; số tiền là thông tin chính nên in đậm, căn phải, chữ số cùng độ rộng. */
+:root{
+  --paper:#F1F4F2; --surface:#FFFFFF; --ink:#16212B; --muted:#5A6672; --line:#D8DEDA;
+  --green:#17654A; --green-soft:#E1F0E9; --blue:#1E4D8C; --blue-soft:#E4ECF7;
+  --seal:#B42318; --seal-soft:#FBEAE7; --warn:#9A5B00; --warn-soft:#FDF0D9;
+  --shadow:0 1px 2px rgba(22,33,43,.06),0 4px 16px rgba(22,33,43,.06);
+  --font:"Be Vietnam Pro",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#10151A; --surface:#19212A; --ink:#E4E9EE; --muted:#97A2AD; --line:#2A343E;
+  --green:#5FCB9C; --green-soft:#16302A; --blue:#86AEE8; --blue-soft:#1E2B3D;
+  --seal:#F07A6E; --seal-soft:#3A2120; --warn:#F2B654; --warn-soft:#3A2D14; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --paper:#10151A; --surface:#19212A; --ink:#E4E9EE; --muted:#97A2AD; --line:#2A343E;
+  --green:#5FCB9C; --green-soft:#16302A; --blue:#86AEE8; --blue-soft:#1E2B3D;
+  --seal:#F07A6E; --seal-soft:#3A2120; --warn:#F2B654; --warn-soft:#3A2D14; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent;font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:720px;margin:0 auto}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+header.top .wrap{padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+header.top h1{margin:0;font-size:19px;font-weight:700;letter-spacing:-.01em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.back{border:0;background:transparent;color:var(--blue);font-weight:600;padding:4px 0;display:flex;align-items:center;gap:4px}
+.lockbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;color:var(--muted);flex:none}
+
+main{padding-block:14px 120px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.banner{border-radius:12px;padding:12px 14px;font-size:14px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.banner p{margin:0}
+.banner.info{background:var(--blue-soft)} .banner.warn{background:var(--warn-soft)} .banner.demo{background:var(--seal-soft)}
+.banner button{flex:none;border:0;background:transparent;color:var(--blue);font-weight:600;padding:2px 0}
+
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.hero .lbl{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.hero .big{font-size:28px;font-weight:700;line-height:1.1;color:var(--green);overflow-wrap:anywhere}
+.hero .big small{font-size:14px;font-weight:600;color:var(--muted);margin-left:4px}
+.hero .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.hero .row3 div{min-width:0}
+.hero .row3 b{display:block;font-size:17px}
+.hero .row3 span{font-size:12px;color:var(--muted)}
+.hero .row3 .alert b{color:var(--seal)}
+
+h2.sec{margin:6px 2px 0;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h2.sec span{font-weight:500;letter-spacing:0;text-transform:none}
+
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;flex-direction:column;gap:4px;text-align:left;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.item:active{background:var(--blue-soft)}
+.item .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.item .row>*{min-width:0}
+.name{font-weight:600;font-size:15.5px;overflow-wrap:anywhere}
+.money{font-weight:700;color:var(--green);flex:none;text-align:right}
+.acc{font-weight:700;color:var(--blue);letter-spacing:.02em}
+.meta{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.item.closed{opacity:.62}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;flex:none}
+.pill.ok{background:var(--green-soft);color:var(--green)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--seal-soft);color:var(--seal)} .pill.idle{background:var(--blue-soft);color:var(--blue)}
+.pill.off{background:var(--line);color:var(--muted)}
+
+.search{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;font-size:16px;appearance:none;-webkit-appearance:none}
+.empty{text-align:center;padding:30px 16px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card h2{margin:0;font-size:16px}
+.card p{margin:0;font-size:14px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14.5px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;font-weight:600;font-size:14.5px}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:var(--surface)}
+.btn.green{background:var(--green);border-color:var(--green);color:var(--surface)}
+.btn.danger{color:var(--seal);border-color:var(--seal)}
+.btn.grow{flex:1}
+
+.fab{position:fixed;z-index:15;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));border:0;background:var(--blue);color:var(--surface);border-radius:14px;padding:13px 18px;font-weight:600;font-size:15px;box-shadow:var(--shadow)}
+nav.bottom{position:fixed;z-index:20;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.bottom .in{display:grid;grid-template-columns:repeat(3,1fr);max-width:720px;margin:0 auto}
+nav.bottom button{border:0;background:transparent;padding:10px 4px 9px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted);font-weight:500}
+nav.bottom svg{width:22px;height:22px}
+nav.bottom button[aria-current="page"]{color:var(--blue)}
+
+.overlay{position:fixed;inset:0;z-index:40;background:rgba(10,14,20,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:720px;max-height:92%;overflow-y:auto;border-radius:18px 18px 0 0;padding:8px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+.sheet.tall{max-height:96%}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--line);align-self:center;margin:2px 0 4px}
+.sheet h2{margin:0;font-size:18px}
+.sheet .sub{margin:-6px 0 0;font-size:13px;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:13px;font-weight:600;color:var(--muted)}
+.field .hint{font-size:12.5px;color:var(--muted)}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;font-size:16px;appearance:none;-webkit-appearance:none}
+.field select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 17px) 52%,calc(100% - 12px) 52%;background-size:5px 5px;background-repeat:no-repeat;padding-right:32px}
+.field input.amt{font-weight:700;font-size:20px;color:var(--green)}
+textarea{resize:vertical;min-height:64px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.err{font-size:13px;color:var(--seal);font-weight:500}
+.calc{background:var(--green-soft);border-radius:10px;padding:10px 12px;font-size:14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.calc b{color:var(--green)}
+.sheet .actions{display:flex;gap:8px;position:sticky;bottom:calc(-20px - env(safe-area-inset-bottom,0px));background:var(--surface);padding-block:10px 0}
+.sheet .actions .btn{flex:1}
+.hist{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px}
+.hist div{padding:2px 0}
+
+/* Sao kê: tờ giấy luôn nền trắng như bản in */
+.paperwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:#E9ECEA}
+.paper{background:#FFFFFF;color:#111111;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.4;padding:22px 20px;min-width:600px}
+.paper .org{font-weight:700;text-transform:uppercase}
+.paper .title{text-align:center;font-weight:700;font-size:18px;margin:14px 0 0}
+.paper .asof{text-align:center;font-style:italic;margin:2px 0 12px}
+.paper table{width:100%;border-collapse:collapse}
+.paper .info td{padding:3px 4px;vertical-align:top}
+.paper .tbl{margin-top:10px}
+.paper .tbl th,.paper .tbl td{border:1px solid #333;padding:5px 6px}
+.paper .tbl th{background:#F1F1F1}
+.paper .r{text-align:right} .paper .c{text-align:center}
+.paper .sign{display:grid;grid-template-columns:1fr 1fr;text-align:center;margin-top:8px}
+.paper .sign b{display:block}
+.paper .sign .nm{margin-top:56px;font-weight:700}
+.paper .place{text-align:right;font-style:italic;margin-top:14px}
+
+.lock{position:fixed;inset:0;z-index:70;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.lock .box{width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;text-align:center}
+.lock h2{margin:0;font-size:20px}
+.lock input{text-align:center;font-size:24px;letter-spacing:.4em;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;width:100%}
+.lock .muted{font-size:13px;color:var(--muted)}
+.lock .link{border:0;background:transparent;color:var(--seal);font-size:13px;font-weight:600}
+.toast{position:fixed;z-index:80;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;font-size:14px;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
+@media (max-width:360px){.grid2{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+#printArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block;position:absolute;left:0;top:0;width:100%}
+  #printArea .paper{min-width:0;padding:0}
+  body::before{display:none}
+}
+</style>
+
+</head>
+<body>
+<header class="top"><div class="wrap" id="hdr"></div></header>
+<main class="wrap"><div class="stack" id="view"></div></main>
+<button class="fab" id="fab" type="button" hidden></button>
+<nav class="bottom" aria-label="Điều hướng"><div class="in">
+  <button type="button" data-v="tq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Đến hạn</button>
+  <button type="button" data-v="kh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.4 3.5 5.2"/></svg>Khách hàng</button>
+  <button type="button" data-v="cai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Cài đặt</button>
+</div></nav>
+<div id="layer"></div>
+<div id="lockLayer"></div>
+<div id="printArea"></div>
+
+<script>
+(function(){
+"use strict";
+const KEY = "sotietkiem.v1";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const pad = n => String(n).padStart(2, "0");
+const iso = d => d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+const todayISO = () => iso(new Date());
+const fmt = s => { if (!s) return ""; const [y,m,d] = s.split("-"); return d + "/" + m + "/" + y; };
+const days = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
+const money = n => (Math.round(+n || 0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+const parseMoney = s => +String(s || "").replace(/[^\d]/g, "") || 0;
+const rateTxt = r => (r === "" || r == null || isNaN(+r)) ? "" : (Number.isInteger(+r) ? (+r).toFixed(1) : (+r).toFixed(2)) + "%";
+const termTxt = m => +m ? pad(+m) + " tháng" : "Không kỳ hạn";
+function addMonths(s, m){
+  if (!s || !+m) return "";
+  const [y, mo, d] = s.split("-").map(Number);
+  const t = new Date(y, mo - 1 + +m, 1);
+  const last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+  t.setDate(Math.min(d, last));
+  return iso(t);
+}
+const interest = a => (+a.amount || 0) * (+a.rate || 0) / 100 * (+a.term || 0) / 12;
+const TERMS = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,15,18,24,36,48,60];
+
+/* ---------- State ---------- */
+function demoState(){
+  const C = {id:"demo1", name:"Nguyễn Văn A (khách hàng mẫu)", idNo:"068xxxxxxxxx", idDate:"2021-08-12", address:"Thôn 15, xã Bảo Lâm 1, tỉnh Lâm Đồng", phone:"09xxxxxxxx", note:""};
+  const A = (accNo,amount,term,rate,open) => ({id:uid(), customerId:"demo1", accNo, amount, term, rate, open, due:addMonths(open,term), status:"open", closeDate:"", note:"", history:[]});
+  return {v:1, demo:true, org:defaultOrg(), customers:[C], accounts:[
+    A("AC1503893",1100000000,12,8,"2025-12-19"), A("AC1503902",1000000000,12,8,"2025-12-23"),
+    A("AC1503980",1700000000,12,8,"2025-12-29"), A("AC1503960",350000000,6,8,"2026-01-15"),
+    A("AC1504010",2000000000,6,6.6,"2026-01-26"), A("AC1504040",350000000,12,"","2026-02-23"),
+    A("AC1504065",3600000000,12,8,"2026-03-05")], lastBackup:null, hideInstall:false};
+}
+function defaultOrg(){ return {name:"QUỸ TÍN DỤNG NHÂN DÂN LỘC NGÃI", addr:"Thôn 15 – xã Bảo Lâm 1 – tỉnh Lâm Đồng", place:"Bảo Lâm 1", preparer:"Doãn Thị Hồng Nhung", director:"Lưu Văn Đồng", warnDays:30}; }
+
+let S = null, cryptoKey = null, encrypted = false, storageOK = true;
+
+/* ---------- Encryption (mã khóa) ---------- */
+const enc = new TextEncoder(), dec = new TextDecoder();
+const b64 = buf => { let s = ""; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function deriveKey(pin, salt){
+  const base = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2", salt, iterations:210000, hash:"SHA-256"}, base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
+}
+let keySalt = null;
+async function sealState(){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, cryptoKey, enc.encode(JSON.stringify(S)));
+  return {app:"sotietkiem", enc:1, salt:b64(keySalt), iv:b64(iv), data:b64(ct)};
+}
+async function openSealed(obj, pin){
+  const salt = unb64(obj.salt);
+  const key = await deriveKey(pin, salt);
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(obj.iv)}, key, unb64(obj.data));
+  return {state:JSON.parse(dec.decode(pt)), key, salt};
+}
+
+let saveChain = Promise.resolve();
+function save(){
+  saveChain = saveChain.then(async () => {
+    try {
+      const payload = encrypted ? JSON.stringify(await sealState()) : JSON.stringify(S);
+      localStorage.setItem(KEY, payload); storageOK = true;
+    } catch(e){ storageOK = false; toast("Không lưu được vào máy. Hãy sao lưu ngay."); }
+  });
+  return saveChain;
+}
+function readRaw(){ try { const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; } catch(e){ storageOK = false; return null; } }
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+
+const ui = { view:"tq", cust:null, q:"", showClosed:false };
+const custOf = id => S.customers.find(c => c.id === id);
+const openAccs = () => S.accounts.filter(a => a.status !== "closed");
+function accState(a){
+  if (a.status === "closed") return {cls:"off", t:"Đã tất toán " + fmt(a.closeDate)};
+  if (!a.due) return {cls:"idle", t:"Không kỳ hạn"};
+  const n = days(todayISO(), a.due);
+  if (n < 0) return {cls:"bad", t:"Quá hạn " + (-n) + " ngày"};
+  if (n === 0) return {cls:"warn", t:"Đến hạn hôm nay"};
+  if (n <= (+S.org.warnDays || 30)) return {cls:"warn", t:"Còn " + n + " ngày"};
+  return {cls:"ok", t:"Đang gửi"};
+}
+
+/* ---------- Render ---------- */
+function isStandalone(){ return window.navigator.standalone === true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches); }
+function render(){
+  document.querySelectorAll("nav.bottom button").forEach(b => { if (b.dataset.v === ui.view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  const fab = $("#fab");
+  const lockBtn = encrypted ? `<button type="button" class="lockbtn" data-act="lockNow">Khóa</button>` : "";
+  if (ui.view === "kh" && ui.cust && custOf(ui.cust)) {
+    const c = custOf(ui.cust);
+    $("#hdr").innerHTML = `<button type="button" class="back" data-act="backList"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Khách hàng</button>${lockBtn}`;
+    fab.hidden = false; fab.textContent = "＋ Thêm sổ";
+    renderCustomer(c); return;
+  }
+  const titles = {tq:"Sổ tiết kiệm", kh:"Khách hàng", cai:"Cài đặt"};
+  $("#hdr").innerHTML = `<h1>${titles[ui.view]}</h1>${lockBtn}`;
+  if (ui.view === "tq") { fab.hidden = true; renderHome(); }
+  else if (ui.view === "kh") { fab.hidden = false; fab.textContent = "＋ Thêm khách hàng"; renderCustomers(); }
+  else { fab.hidden = true; renderSettings(); }
+}
+function banners(){
+  let h = "";
+  const framed = window.self !== window.top;
+  if (!storageOK) h += `<div class="banner warn"><p><b>Máy không cho lưu dữ liệu.</b> Dữ liệu sẽ mất khi đóng ứng dụng. Hãy tắt duyệt riêng tư hoặc sao lưu ngay.</p></div>`;
+  if (!isStandalone() && !framed && !S.hideInstall) h += `<div class="banner info"><p><b>Cài lên màn hình chính trước khi nhập dữ liệu thật.</b> Bấm Chia sẻ → <b>Thêm vào MH chính</b>. Dữ liệu nhập ở Safari không tự chuyển sang ứng dụng đã cài.</p><button type="button" data-act="hideInstall">Ẩn</button></div>`;
+  if (S.demo) h += `<div class="banner demo"><p><b>Đây là dữ liệu mẫu</b> lấy theo bản sao kê, tên và giấy tờ đã che. Xóa đi khi bắt đầu dùng thật.</p><button type="button" data-act="clearDemo">Xóa mẫu</button></div>`;
+  if (!S.demo && S.accounts.length) {
+    const d = S.lastBackup ? days(S.lastBackup.slice(0,10), todayISO()) : null;
+    if (d === null || d >= 7) h += `<div class="banner warn"><p>${d === null ? "Anh chưa sao lưu lần nào." : "Đã " + d + " ngày chưa sao lưu."} Dữ liệu tiền gửi nên sao lưu mỗi tuần.</p><button type="button" data-act="backup">Sao lưu</button></div>`;
+  }
+  if (!S.demo && S.accounts.length && !encrypted && !S.hidePinTip) h += `<div class="banner info"><p>Sổ có thông tin khách hàng. Nên đặt <b>mã khóa</b> trong Cài đặt để mã hóa dữ liệu trên máy.</p><button type="button" data-act="hidePinTip">Ẩn</button></div>`;
+  return h;
+}
+function accRow(a, withName){
+  const st = accState(a), c = custOf(a.customerId);
+  return `<button type="button" class="item${a.status === "closed" ? " closed" : ""}" data-acc="${a.id}">
+    <div class="row"><span class="acc">${esc(a.accNo) || "Chưa có số"}</span><span class="money">${money(a.amount)}</span></div>
+    ${withName ? `<div class="name" style="font-size:14.5px">${esc(c ? c.name : "")}</div>` : ""}
+    <div class="row"><span class="meta">${termTxt(a.term)}${a.rate !== "" && a.rate != null ? " · " + rateTxt(a.rate) : ""} · Mở ${fmt(a.open)}${a.due ? " · Hạn " + fmt(a.due) : ""}</span></div>
+    <div><span class="pill ${st.cls}">${st.t}</span></div>
+  </button>`;
+}
+function renderHome(){
+  const open = openAccs();
+  const total = open.reduce((s,a) => s + (+a.amount||0), 0);
+  const t = todayISO(), w = +S.org.warnDays || 30;
+  const over = open.filter(a => a.due && a.due < t).sort((a,b) => a.due.localeCompare(b.due));
+  const soon = open.filter(a => a.due && a.due >= t && days(t, a.due) <= w).sort((a,b) => a.due.localeCompare(b.due));
+  const custCount = new Set(open.map(a => a.customerId)).size;
+  let h = banners();
+  h += `<div class="hero"><div><div class="lbl">Tổng số dư đang gửi</div><div class="big">${money(total)}<small>đồng</small></div></div>
+    <div class="row3"><div><b>${open.length}</b><span>Sổ đang mở</span></div><div><b>${custCount}</b><span>Khách hàng</span></div><div class="${over.length ? "alert" : ""}"><b>${over.length + soon.length}</b><span>${over.length ? over.length + " quá hạn" : "Đến hạn " + w + " ngày"}</span></div></div></div>`;
+  if (over.length) h += `<h2 class="sec">Quá hạn chưa tất toán <span>${over.length} sổ</span></h2><div class="list">${over.map(a => accRow(a, true)).join("")}</div>`;
+  h += `<h2 class="sec">Đến hạn trong ${w} ngày tới <span>${soon.length} sổ · ${money(soon.reduce((s,a)=>s+(+a.amount||0),0))}</span></h2>`;
+  h += soon.length ? `<div class="list">${soon.map(a => accRow(a, true)).join("")}</div>` : `<div class="empty"><b>Không có sổ nào sắp đến hạn</b>${S.accounts.length ? "Các sổ đến hạn trong " + w + " ngày tới sẽ hiện ở đây." : "Vào mục Khách hàng để thêm khách hàng và sổ tiết kiệm đầu tiên."}</div>`;
+  $("#view").innerHTML = h;
+}
+function custSummary(c){
+  const accs = S.accounts.filter(a => a.customerId === c.id && a.status !== "closed");
+  const total = accs.reduce((s,a)=>s+(+a.amount||0),0);
+  const next = accs.filter(a => a.due).sort((a,b)=>a.due.localeCompare(b.due))[0];
+  return {accs, total, next};
+}
+function renderCustomers(){
+  const q = ui.q.trim().toLowerCase();
+  let cs = S.customers.slice();
+  if (q) cs = cs.filter(c => [c.name,c.idNo,c.phone,c.address].concat(S.accounts.filter(a=>a.customerId===c.id).map(a=>a.accNo)).join(" ").toLowerCase().includes(q));
+  cs.sort((a,b) => a.name.localeCompare(b.name, "vi"));
+  let h = banners();
+  h += `<input id="q" class="search" type="search" placeholder="Tìm tên, CCCD, số điện thoại, số sổ…" value="${esc(ui.q)}" aria-label="Tìm khách hàng">`;
+  if (!cs.length) h += q ? `<div class="empty"><b>Không tìm thấy</b>Thử tìm bằng số CCCD hoặc số sổ.</div>` : `<div class="empty"><b>Chưa có khách hàng</b>Bấm <b>Thêm khách hàng</b> ở góc dưới để bắt đầu.</div>`;
+  else h += `<div class="list">${cs.map(c => { const s = custSummary(c); const st = s.next ? accState(s.next) : null;
+    return `<button type="button" class="item" data-cust="${c.id}"><div class="row"><span class="name">${esc(c.name)}</span><span class="money">${money(s.total)}</span></div>
+      <div class="meta">${c.idNo ? "CCCD " + esc(c.idNo) : ""}${c.phone ? " · " + esc(c.phone) : ""}</div>
+      <div class="row"><span class="meta">${s.accs.length} sổ đang mở${s.next ? " · Gần nhất đến hạn " + fmt(s.next.due) : ""}</span>${st && st.cls !== "ok" ? `<span class="pill ${st.cls}">${st.t}</span>` : ""}</div></button>`; }).join("")}</div>`;
+  $("#view").innerHTML = h;
+}
+function renderCustomer(c){
+  const all = S.accounts.filter(a => a.customerId === c.id);
+  const open = all.filter(a => a.status !== "closed").sort((a,b)=>(a.open||"").localeCompare(b.open||""));
+  const closed = all.filter(a => a.status === "closed");
+  const total = open.reduce((s,a)=>s+(+a.amount||0),0);
+  let h = `<div class="card"><div class="row" style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><h2 style="overflow-wrap:anywhere">${esc(c.name)}</h2><button type="button" class="btn" data-act="editCust" style="padding:6px 12px">Sửa</button></div>
+    <dl class="kv">
+      <dt>CCCD số</dt><dd>${esc(c.idNo) || "—"}</dd>
+      <dt>Ngày cấp</dt><dd>${fmt(c.idDate) || "—"}</dd>
+      <dt>Địa chỉ</dt><dd>${esc(c.address) || "—"}</dd>
+      <dt>Số di động</dt><dd>${esc(c.phone) || "—"}</dd>
+      ${c.note ? `<dt>Ghi chú</dt><dd>${esc(c.note)}</dd>` : ""}
+    </dl></div>`;
+  h += `<div class="hero"><div><div class="lbl">Tổng số dư · ${open.length} sổ đang mở</div><div class="big">${money(total)}<small>đồng</small></div></div>
+    <div class="btnrow"><button type="button" class="btn green grow" data-act="statement">Lập sao kê</button><button type="button" class="btn grow" data-act="addAcc">＋ Thêm sổ</button></div></div>`;
+  h += `<h2 class="sec">Sổ đang gửi</h2>`;
+  h += open.length ? `<div class="list">${open.map(a => accRow(a,false)).join("")}</div>` : `<div class="empty"><b>Chưa có sổ nào</b>Bấm <b>Thêm sổ</b> để nhập sổ tiết kiệm của khách hàng này.</div>`;
+  if (closed.length) {
+    h += `<h2 class="sec">Đã tất toán <span><button type="button" class="back" data-act="toggleClosed" style="font-size:13px">${ui.showClosed ? "Ẩn" : "Hiện " + closed.length + " sổ"}</button></span></h2>`;
+    if (ui.showClosed) h += `<div class="list">${closed.map(a => accRow(a,false)).join("")}</div>`;
+  }
+  $("#view").innerHTML = h;
+}
+function renderSettings(){
+  const o = S.org, last = S.lastBackup ? fmt(S.lastBackup.slice(0,10)) : "chưa có";
+  let h = banners();
+  h += `<div class="card"><h2>Thông tin đơn vị trên sao kê</h2>
+    <dl class="kv"><dt>Tên đơn vị</dt><dd>${esc(o.name)}</dd><dt>Địa chỉ</dt><dd>${esc(o.addr)}</dd><dt>Nơi lập</dt><dd>${esc(o.place)}</dd><dt>Người lập biểu</dt><dd>${esc(o.preparer)||"—"}</dd><dt>Giám đốc</dt><dd>${esc(o.director)||"—"}</dd><dt>Báo trước</dt><dd>${+o.warnDays||30} ngày trước hạn</dd></dl>
+    <button type="button" class="btn" data-act="editOrg">Sửa thông tin</button></div>`;
+  h += `<div class="card"><h2>Mã khóa</h2><p>${encrypted ? "Đã bật. Dữ liệu trên máy được mã hóa, phải nhập mã mới xem được. Ứng dụng tự khóa khi rời đi quá 2 phút." : "Chưa bật. Đặt mã khóa để mã hóa thông tin khách hàng và số dư trên máy."} Nếu quên mã, chỉ lấy lại được bằng bản sao lưu.</p>
+    <div class="btnrow">${encrypted ? `<button type="button" class="btn" data-act="setPin">Đổi mã</button><button type="button" class="btn danger" data-act="removePin">Tắt mã khóa</button>` : `<button type="button" class="btn primary" data-act="setPin">Đặt mã khóa</button>`}</div></div>`;
+  h += `<div class="card"><h2>Sao lưu dữ liệu</h2><p>Lần gần nhất: <b>${last}</b>. ${encrypted ? "File sao lưu được mã hóa bằng mã khóa hiện tại." : "Nên đặt mã khóa trước để file sao lưu cũng được mã hóa."} Cất file vào iCloud Drive.</p>
+    <div class="btnrow"><button type="button" class="btn primary" data-act="backup">Sao lưu toàn bộ</button><button type="button" class="btn" data-act="restore">Khôi phục</button></div></div>`;
+  h += `<div class="card"><h2>Xuất ra Excel</h2><p>Danh sách toàn bộ sổ đang mở kèm thông tin khách hàng, dạng CSV mở bằng Excel. File này không mã hóa, cần giữ cẩn thận.</p><button type="button" class="btn" data-act="csv">Xuất danh sách sổ</button></div>`;
+  h += `<div class="card"><h2>Cài lên iPhone</h2><p>${isStandalone() ? "Ứng dụng đang chạy từ màn hình chính, dùng được khi không có mạng." : "Mở bằng Safari, bấm Chia sẻ → <b>Thêm vào MH chính</b>, rồi luôn mở từ biểu tượng đó."}</p></div>`;
+  h += `<div class="card"><h2>Xóa dữ liệu</h2><p>${S.customers.length} khách hàng, ${S.accounts.length} sổ đang lưu.</p><button type="button" class="btn danger" data-act="wipe">Xóa toàn bộ</button></div>`;
+  $("#view").innerHTML = h;
+}
+
+/* ---------- Sheets ---------- */
+let sheetClose = null;
+function openSheet(html, onMount, tall){
+  $("#layer").innerHTML = `<div class="overlay" id="ov"><div class="sheet${tall ? " tall" : ""}" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;
+  const ov = $("#ov");
+  const close = () => { $("#layer").innerHTML = ""; sheetClose = null; document.body.style.overflow = ""; };
+  sheetClose = close; document.body.style.overflow = "hidden";
+  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  ov.querySelectorAll("[data-close]").forEach(x => x.addEventListener("click", close));
+  if (onMount) onMount(ov.querySelector(".sheet"), close);
+}
+function confirmSheet(title, text, ok, danger){
+  return new Promise(res => {
+    let done = false; const fin = v => { if (!done) { done = true; res(v); } };
+    openSheet(`<h2>${esc(title)}</h2><p class="sub" style="margin:0">${text}</p><div class="actions"><button type="button" class="btn" data-close>Thôi</button><button type="button" class="btn ${danger ? "danger" : "primary"}" id="okc">${esc(ok)}</button></div>`,
+      (el, close) => { el.querySelector("#okc").onclick = () => { close(); fin(true); }; el.querySelectorAll("[data-close]").forEach(x => x.addEventListener("click", () => fin(false))); $("#ov").addEventListener("click", e => { if (e.target.id === "ov") fin(false); }); });
+  });
+}
+let toastT;
+function toast(m){ let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role","status"); document.body.appendChild(t); } t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+async function leaveDemo(){
+  if (!S.demo) return true;
+  const ok = await confirmSheet("Bắt đầu dùng thật?", "Khách hàng mẫu và 7 sổ mẫu sẽ bị xóa. Thông tin đơn vị trên sao kê được giữ nguyên.", "Xóa mẫu và tiếp tục");
+  if (!ok) return false;
+  S.customers = []; S.accounts = []; S.demo = false; ui.cust = null; await save(); render(); return true;
+}
+function amountInput(el){
+  el.addEventListener("input", () => { const n = parseMoney(el.value); const p = el.selectionStart, len = el.value.length; el.value = n ? money(n) : ""; try { const np = Math.max(0, p + el.value.length - len); el.setSelectionRange(np, np); } catch(e){} });
+}
+
+function editCustomer(id){
+  const ex = id ? custOf(id) : null;
+  const c = ex ? {...ex} : {name:"", idNo:"", idDate:"", address:"", phone:"", note:""};
+  openSheet(`<h2>${ex ? "Sửa khách hàng" : "Thêm khách hàng"}</h2>
+    <div class="field"><label for="c-name">Họ tên khách hàng</label><input id="c-name" value="${esc(c.name)}" autocomplete="off"></div>
+    <div class="grid2"><div class="field"><label for="c-id">CCCD số</label><input id="c-id" inputmode="numeric" value="${esc(c.idNo)}" autocomplete="off"></div>
+    <div class="field"><label for="c-idd">Ngày cấp</label><input id="c-idd" type="date" value="${esc(c.idDate)}"></div></div>
+    <div class="field"><label for="c-addr">Địa chỉ</label><input id="c-addr" value="${esc(c.address)}" autocomplete="off"></div>
+    <div class="field"><label for="c-phone">Số di động</label><input id="c-phone" type="tel" value="${esc(c.phone)}" autocomplete="off"></div>
+    <div class="field"><label for="c-note">Ghi chú</label><input id="c-note" value="${esc(c.note)}"></div>
+    <span class="err" id="c-err" hidden></span>
+    ${ex ? `<button type="button" class="btn danger" id="c-del">Xóa khách hàng và các sổ</button>` : ""}
+    <div class="actions"><button type="button" class="btn" data-close>Hủy</button><button type="button" class="btn primary" id="c-sv">Lưu</button></div>`,
+  (el, close) => {
+    const g = s => el.querySelector(s);
+    g("#c-sv").onclick = async () => {
+      c.name = g("#c-name").value.trim(); c.idNo = g("#c-id").value.trim(); c.idDate = g("#c-idd").value;
+      c.address = g("#c-addr").value.trim(); c.phone = g("#c-phone").value.trim(); c.note = g("#c-note").value.trim();
+      if (!c.name) { const e = g("#c-err"); e.textContent = "Hãy nhập họ tên khách hàng."; e.hidden = false; return; }
+      const dup = c.idNo && S.customers.find(x => x.idNo === c.idNo && x.id !== (ex && ex.id));
+      if (dup) { const e = g("#c-err"); e.textContent = "Số CCCD này đã có: " + dup.name + "."; e.hidden = false; return; }
+      if (ex) Object.assign(ex, c); else { c.id = uid(); S.customers.push(c); ui.view = "kh"; ui.cust = c.id; }
+      await save(); close(); render(); toast("Đã lưu " + c.name);
+    };
+    if (ex) g("#c-del").onclick = async () => {
+      close(); const n = S.accounts.filter(a => a.customerId === ex.id).length;
+      const ok = await confirmSheet("Xóa " + ex.name + "?", n ? "Cả " + n + " sổ tiết kiệm của khách hàng này cũng bị xóa." : "Khách hàng chưa có sổ nào.", "Xóa", true);
+      if (!ok) { editCustomer(ex.id); return; }
+      S.customers = S.customers.filter(x => x.id !== ex.id); S.accounts = S.accounts.filter(a => a.customerId !== ex.id); ui.cust = null; await save(); render(); toast("Đã xóa");
+    };
+  });
+}
+
+function editAccount(id, custId){
+  const ex = id ? S.accounts.find(a => a.id === id) : null;
+  const a = ex ? {...ex} : {customerId:custId, accNo:"", amount:0, term:12, rate:"", open:todayISO(), due:"", status:"open", closeDate:"", note:"", history:[]};
+  if (!ex) a.due = addMonths(a.open, a.term);
+  let dueManual = ex ? (a.due !== addMonths(a.open, a.term)) : false;
+  const c = custOf(a.customerId);
+  openSheet(`<h2>${ex ? "Sổ " + esc(a.accNo) : "Thêm sổ tiết kiệm"}</h2><p class="sub">${esc(c ? c.name : "")}${ex && ex.status === "closed" ? " · Đã tất toán " + fmt(ex.closeDate) : ""}</p>
+    <div class="field"><label for="a-no">Số sổ (STK)</label><input id="a-no" value="${esc(a.accNo)}" autocapitalize="characters" autocomplete="off" placeholder="AC1503893"></div>
+    <div class="field"><label for="a-amt">Số dư (đồng)</label><input id="a-amt" class="amt" inputmode="numeric" value="${a.amount ? money(a.amount) : ""}" placeholder="0"></div>
+    <div class="grid2"><div class="field"><label for="a-term">Kỳ hạn</label><select id="a-term">${TERMS.map(t => `<option value="${t}"${+a.term===t?" selected":""}>${termTxt(t)}</option>`).join("")}</select></div>
+    <div class="field"><label for="a-rate">Lãi suất (%/năm)</label><input id="a-rate" inputmode="decimal" value="${esc(a.rate)}" placeholder="8.0"></div></div>
+    <div class="grid2"><div class="field"><label for="a-open">Ngày mở</label><input id="a-open" type="date" value="${esc(a.open)}"></div>
+    <div class="field"><label for="a-due">Ngày đến hạn</label><input id="a-due" type="date" value="${esc(a.due)}"><span class="hint" id="a-duehint"></span></div></div>
+    <div class="calc" id="a-calc"></div>
+    <div class="field"><label for="a-note">Ghi chú</label><input id="a-note" value="${esc(a.note)}"></div>
+    ${ex && ex.history && ex.history.length ? `<div class="hist"><b>Các kỳ trước</b>${ex.history.map(h => `<div>${fmt(h.open)} → ${fmt(h.due)} · ${money(h.amount)} · ${termTxt(h.term)}${h.rate!==""&&h.rate!=null?" · "+rateTxt(h.rate):""}</div>`).join("")}</div>` : ""}
+    <span class="err" id="a-err" hidden></span>
+    ${ex && ex.status !== "closed" ? `<div class="btnrow"><button type="button" class="btn grow" id="a-renew">Tái tục kỳ mới</button><button type="button" class="btn grow" id="a-close">Tất toán</button></div>` : ""}
+    ${ex && ex.status === "closed" ? `<button type="button" class="btn" id="a-reopen">Bỏ tất toán</button>` : ""}
+    <div class="actions">${ex ? `<button type="button" class="btn danger" id="a-del">Xóa</button>` : `<button type="button" class="btn" data-close>Hủy</button>`}<button type="button" class="btn primary" id="a-sv">${ex ? "Lưu" : "Thêm sổ"}</button></div>`,
+  (el, close) => {
+    const g = s => el.querySelector(s);
+    amountInput(g("#a-amt"));
+    const read = () => { a.accNo = g("#a-no").value.trim().toUpperCase(); a.amount = parseMoney(g("#a-amt").value); a.term = +g("#a-term").value; const r = g("#a-rate").value.trim().replace(",", "."); a.rate = r === "" ? "" : +r; a.open = g("#a-open").value; a.note = g("#a-note").value.trim(); };
+    const upd = () => {
+      read();
+      if (!dueManual) { a.due = addMonths(a.open, a.term); g("#a-due").value = a.due; } else a.due = g("#a-due").value;
+      g("#a-duehint").textContent = dueManual ? "Đã sửa tay" : (a.term ? "Tự tính theo kỳ hạn" : "");
+      const it = interest(a);
+      g("#a-calc").innerHTML = a.term && a.rate !== "" ? `<span>Lãi dự kiến cuối kỳ (ước tính)</span><b>${money(it)} đ</b>` : `<span>Nhập kỳ hạn và lãi suất để ước tính tiền lãi cuối kỳ.</span>`;
+    };
+    ["#a-amt","#a-rate","#a-no","#a-note"].forEach(s => g(s).addEventListener("input", upd));
+    ["#a-term","#a-open"].forEach(s => g(s).addEventListener("change", upd));
+    g("#a-due").addEventListener("change", () => { dueManual = !!g("#a-due").value && g("#a-due").value !== addMonths(g("#a-open").value, +g("#a-term").value); upd(); });
+    upd();
+    const valid = () => {
+      const e = g("#a-err");
+      let m = !a.accNo ? "Hãy nhập số sổ." : (!a.amount ? "Hãy nhập số dư." : (!a.open ? "Hãy chọn ngày mở." : (a.rate !== "" && (isNaN(a.rate) || a.rate < 0 || a.rate > 30) ? "Lãi suất không hợp lệ." : "")));
+      const dup = a.accNo && S.accounts.find(x => x.accNo.replace(/\s/g,"") === a.accNo.replace(/\s/g,"") && x.id !== (ex && ex.id));
+      if (!m && dup) m = "Số sổ " + a.accNo + " đã có (" + (custOf(dup.customerId) || {}).name + ").";
+      e.textContent = m; e.hidden = !m; return !m;
+    };
+    g("#a-sv").onclick = async () => {
+      upd(); if (!valid()) return;
+      if (ex) Object.assign(ex, a); else { a.id = uid(); S.accounts.push(a); }
+      await save(); close(); render(); toast(ex ? "Đã lưu" : "Đã thêm sổ " + a.accNo);
+    };
+    if (ex && g("#a-renew")) g("#a-renew").onclick = () => { close(); renewAccount(ex); };
+    if (ex && g("#a-close")) g("#a-close").onclick = () => { close(); closeAccount(ex); };
+    if (ex && g("#a-reopen")) g("#a-reopen").onclick = async () => { ex.status = "open"; ex.closeDate = ""; await save(); close(); render(); toast("Đã mở lại sổ"); };
+    if (ex) g("#a-del").onclick = async () => {
+      close(); const ok = await confirmSheet("Xóa sổ " + ex.accNo + "?", "Sổ bị xóa hẳn khỏi danh sách. Nếu khách đã rút tiền, nên dùng <b>Tất toán</b> để giữ lại lịch sử.", "Xóa sổ", true);
+      if (!ok) { editAccount(ex.id); return; }
+      S.accounts = S.accounts.filter(x => x.id !== ex.id); await save(); render(); toast("Đã xóa sổ");
+    };
+  });
+}
+function renewAccount(a){
+  const it = interest(a);
+  openSheet(`<h2>Tái tục sổ ${esc(a.accNo)}</h2><p class="sub">Kỳ hiện tại: ${fmt(a.open)} → ${fmt(a.due)}</p>
+    <div class="field"><label for="r-amt">Số dư kỳ mới (đồng)</label><input id="r-amt" class="amt" inputmode="numeric" value="${money(a.amount)}">
+      ${it ? `<button type="button" class="btn" id="r-add" style="align-self:flex-start;padding:6px 12px;font-size:13.5px">Cộng lãi ước tính ${money(it)} đ</button>` : ""}</div>
+    <div class="grid2"><div class="field"><label for="r-term">Kỳ hạn</label><select id="r-term">${TERMS.filter(t=>t).map(t => `<option value="${t}"${+a.term===t?" selected":""}>${termTxt(t)}</option>`).join("")}</select></div>
+    <div class="field"><label for="r-rate">Lãi suất mới (%/năm)</label><input id="r-rate" inputmode="decimal" value="${esc(a.rate)}"></div></div>
+    <div class="field"><label for="r-open">Ngày bắt đầu kỳ mới</label><input id="r-open" type="date" value="${esc(a.due || todayISO())}"><span class="hint" id="r-due"></span></div>
+    <div class="actions"><button type="button" class="btn" data-close>Hủy</button><button type="button" class="btn primary" id="r-sv">Tái tục</button></div>`,
+  (el, close) => {
+    const g = s => el.querySelector(s);
+    amountInput(g("#r-amt"));
+    const upd = () => { g("#r-due").textContent = "Đến hạn mới: " + fmt(addMonths(g("#r-open").value, +g("#r-term").value)); };
+    ["#r-term","#r-open"].forEach(s => g(s).addEventListener("change", upd)); upd();
+    if (g("#r-add")) g("#r-add").onclick = () => { g("#r-amt").value = money(a.amount + Math.round(it)); };
+    g("#r-sv").onclick = async () => {
+      const open = g("#r-open").value, term = +g("#r-term").value, r = g("#r-rate").value.trim().replace(",", ".");
+      if (!open || !parseMoney(g("#r-amt").value)) { toast("Hãy nhập số dư và ngày bắt đầu."); return; }
+      a.history = a.history || []; a.history.push({open:a.open, due:a.due, amount:a.amount, term:a.term, rate:a.rate});
+      Object.assign(a, {open, term, rate: r === "" ? "" : +r, amount: parseMoney(g("#r-amt").value), due: addMonths(open, term)});
+      await save(); close(); render(); toast("Đã tái tục đến " + fmt(a.due));
+    };
+  });
+}
+function closeAccount(a){
+  openSheet(`<h2>Tất toán sổ ${esc(a.accNo)}</h2><p class="sub">${money(a.amount)} đ · ${esc((custOf(a.customerId)||{}).name || "")}</p>
+    <div class="field"><label for="t-date">Ngày tất toán</label><input id="t-date" type="date" value="${esc(a.due && a.due <= todayISO() ? a.due : todayISO())}"></div>
+    <div class="field"><label for="t-note">Ghi chú</label><input id="t-note" value="" placeholder="Rút trước hạn, chuyển sổ mới…"></div>
+    <div class="actions"><button type="button" class="btn" data-close>Hủy</button><button type="button" class="btn primary" id="t-sv">Tất toán</button></div>`,
+  (el, close) => {
+    el.querySelector("#t-sv").onclick = async () => {
+      a.status = "closed"; a.closeDate = el.querySelector("#t-date").value || todayISO();
+      const n = el.querySelector("#t-note").value.trim(); if (n) a.note = (a.note ? a.note + " · " : "") + n;
+      await save(); close(); render(); toast("Đã tất toán sổ " + a.accNo);
+    };
+  });
+}
+function editOrg(){
+  const o = S.org;
+  openSheet(`<h2>Thông tin đơn vị</h2>
+    <div class="field"><label for="o-name">Tên đơn vị</label><input id="o-name" value="${esc(o.name)}"></div>
+    <div class="field"><label for="o-addr">Địa chỉ</label><input id="o-addr" value="${esc(o.addr)}"></div>
+    <div class="field"><label for="o-place">Nơi lập (ghi ở dòng ngày tháng)</label><input id="o-place" value="${esc(o.place)}"></div>
+    <div class="grid2"><div class="field"><label for="o-prep">Người lập biểu</label><input id="o-prep" value="${esc(o.preparer)}"></div>
+    <div class="field"><label for="o-dir">Giám đốc</label><input id="o-dir" value="${esc(o.director)}"></div></div>
+    <div class="field"><label for="o-warn">Báo trước khi đến hạn (ngày)</label><input id="o-warn" type="number" inputmode="numeric" min="1" max="120" value="${+o.warnDays||30}"></div>
+    <div class="actions"><button type="button" class="btn" data-close>Hủy</button><button type="button" class="btn primary" id="o-sv">Lưu</button></div>`,
+  (el, close) => {
+    el.querySelector("#o-sv").onclick = async () => {
+      const g = s => el.querySelector(s).value.trim();
+      Object.assign(S.org, {name:g("#o-name"), addr:g("#o-addr"), place:g("#o-place"), preparer:g("#o-prep"), director:g("#o-dir"), warnDays:Math.max(1, Math.min(120, +g("#o-warn") || 30))});
+      await save(); close(); render(); toast("Đã lưu");
+    };
+  });
+}
+
+/* ---------- Sao kê ---------- */
+function statementHTML(c, asof, forWord){
+  const o = S.org;
+  const accs = S.accounts.filter(a => a.customerId === c.id && a.open && a.open <= asof && !(a.status === "closed" && a.closeDate && a.closeDate <= asof)).sort((a,b)=>a.open.localeCompare(b.open));
+  const total = accs.reduce((s,a)=>s+(+a.amount||0),0);
+  const [y,m,d] = asof.split("-");
+  return `<div class="paper">
+    <div class="org">${esc(o.name)}</div><div>${esc(o.addr)}</div>
+    <div class="title">SAO KÊ TIỀN GỬI KHÁCH HÀNG</div><div class="asof">Đến ngày ${fmt(asof)}</div>
+    <table class="info"><tr><td style="width:22%"><b>Họ tên khách hàng:</b></td><td>${esc(c.name)}</td><td style="width:32%"><b>CCCD số:</b> ${esc(c.idNo)}</td></tr>
+    <tr><td><b>Địa chỉ:</b></td><td>${esc(c.address)}</td><td><b>Ngày cấp:</b> ${fmt(c.idDate)}</td></tr>
+    <tr><td><b>Số di động:</b></td><td>${esc(c.phone)}</td><td></td></tr></table>
+    <table class="tbl"><thead><tr><th class="c">TT</th><th>Số STK</th><th class="r">Số dư</th><th class="c">Kỳ hạn</th><th class="c">Lãi suất</th><th class="c">Ngày mở</th><th class="c">Ngày đến hạn</th></tr></thead><tbody>
+    ${accs.map((a,i) => `<tr><td class="c">${i+1}</td><td>${esc(a.accNo)}</td><td class="r">${money(a.amount)}</td><td class="c">${termTxt(a.term)}</td><td class="c">${rateTxt(a.rate)}</td><td class="c">${fmt(a.open)}</td><td class="c">${fmt(a.due)}</td></tr>`).join("") || `<tr><td colspan="7" class="c">Không có sổ tiết kiệm nào tại ngày này</td></tr>`}
+    <tr><td></td><td><b>Tổng</b></td><td class="r"><b>${money(total)}</b></td><td></td><td></td><td></td><td></td></tr></tbody></table>
+    <div class="place">${esc(o.place)}, ngày ${d} tháng ${m} năm ${y}</div>
+    ${forWord
+      ? `<table class="sign"><tr><td style="border:0;width:50%"><b>Người lập biểu</b><p class="nm">${esc(o.preparer)}</p></td><td style="border:0;width:50%"><b>Giám đốc</b><p class="nm">${esc(o.director)}</p></td></tr></table>`
+      : `<div class="sign"><div><b>Người lập biểu</b><div class="nm">${esc(o.preparer)}</div></div><div><b>Giám đốc</b><div class="nm">${esc(o.director)}</div></div></div>`}
+  </div>`;
+}
+function wordDoc(inner){
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Sao kê tiền gửi</title>
+  <style>@page{size:A4 landscape;margin:1.5cm}body{font-family:"Times New Roman";font-size:13pt}.org{font-weight:bold;text-transform:uppercase}.title{text-align:center;font-weight:bold;font-size:15pt;margin-top:12pt}.asof{text-align:center;font-style:italic;margin-bottom:10pt}table{border-collapse:collapse;width:100%}.info td{padding:2pt 4pt;vertical-align:top}.tbl th,.tbl td{border:1px solid #000;padding:4pt}.r{text-align:right}.c{text-align:center}.place{text-align:right;font-style:italic;margin-top:12pt}.sign td{text-align:center;vertical-align:top}.nm{font-weight:bold;margin-top:60pt}</style></head><body>${inner}</body></html>`;
+}
+function statement(c){
+  let asof = todayISO();
+  openSheet(`<h2>Sao kê tiền gửi</h2><p class="sub">${esc(c.name)}</p>
+    <div class="field"><label for="s-date">Đến ngày</label><input id="s-date" type="date" value="${asof}"></div>
+    <div class="paperwrap" id="s-paper"></div>
+    <p class="sub" style="margin:0">Trên iPhone: bấm <b>In / Lưu PDF</b>, sau đó chụm hai ngón tay trên hình xem trước để lưu PDF hoặc gửi đi. Nếu nút In không mở được gì, dùng <b>Xuất file Word</b>.</p>
+    <div class="btnrow"><button type="button" class="btn green grow" id="s-print">In / Lưu PDF</button><button type="button" class="btn grow" id="s-word">Xuất file Word</button></div>
+    <div class="actions"><button type="button" class="btn" data-close>Đóng</button></div>`,
+  (el) => {
+    const g = s => el.querySelector(s);
+    const draw = () => { asof = g("#s-date").value || todayISO(); g("#s-paper").innerHTML = statementHTML(c, asof); };
+    g("#s-date").addEventListener("change", draw); draw();
+    g("#s-print").onclick = () => { $("#printArea").innerHTML = statementHTML(c, asof); try { window.print(); } catch(e){ toast("Máy không mở được hộp thoại in. Hãy dùng Xuất file Word."); } };
+    g("#s-word").onclick = async () => {
+      const name = "SaoKe_" + slug(c.name) + "_" + asof.replace(/-/g,"") + ".doc";
+      const r = await deliver(name, "﻿" + wordDoc(statementHTML(c, asof, true)), "application/msword");
+      if (r === "ok") toast("Đã tạo " + name); else if (r === "fail") toast("Máy chưa cho lưu file ở chế độ xem thử.");
+    };
+  }, true);
+}
+
+/* ---------- Files ---------- */
+async function deliver(name, text, mime){
+  const blob = new Blob([text], {type:mime});
+  try { const f = new File([blob], name, {type:mime}); if (navigator.canShare && navigator.canShare({files:[f]})) { await navigator.share({files:[f], title:name}); return "ok"; } }
+  catch(e){ if (e && e.name === "AbortError") return "cancel"; }
+  try { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); return "ok"; } catch(e){}
+  return "fail";
+}
+const stamp = () => todayISO().replace(/-/g, "");
+function slug(s){ return String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,""); }
+async function backup(){
+  const text = encrypted ? JSON.stringify(await sealState()) : JSON.stringify({app:"sotietkiem", ...S}, null, 1);
+  const name = "SoTietKiem_saoluu_" + stamp() + ".json";
+  openSheet(`<h2>Sao lưu toàn bộ</h2><p class="sub" style="margin:0">${encrypted ? "File được <b>mã hóa</b>, khi khôi phục cần nhập đúng mã khóa hiện tại." : "<b>File chưa mã hóa</b>, ai có file đều đọc được. Nên đặt mã khóa trước khi sao lưu."} Bấm Lưu file rồi chọn <b>Lưu vào Tệp</b> (iCloud Drive).</p>
+    <div class="btnrow"><button type="button" class="btn primary grow" id="x-save">Lưu file ${esc(name)}</button></div>
+    <div class="actions"><button type="button" class="btn" data-close>Đóng</button></div>`,
+  (el) => { el.querySelector("#x-save").onclick = async () => { const r = await deliver(name, text, "application/json"); if (r === "ok") { S.lastBackup = new Date().toISOString(); await save(); toast("Đã tạo file sao lưu"); } else if (r === "fail") toast("Máy chưa cho lưu file ở chế độ xem thử."); }; });
+}
+function csv(){
+  const q = v => '"' + String(v ?? "").replace(/"/g,'""') + '"';
+  const rows = [["Họ tên","CCCD","Ngày cấp","Địa chỉ","Số di động","Số STK","Số dư","Kỳ hạn","Lãi suất","Ngày mở","Ngày đến hạn","Tình trạng","Ghi chú"]];
+  S.accounts.slice().sort((a,b)=>(a.due||"").localeCompare(b.due||"")).forEach(a => { const c = custOf(a.customerId) || {};
+    rows.push([c.name,c.idNo,fmt(c.idDate),c.address,c.phone,a.accNo,a.amount,termTxt(a.term),rateTxt(a.rate),fmt(a.open),fmt(a.due),a.status==="closed"?"Đã tất toán "+fmt(a.closeDate):accState(a).t,a.note]); });
+  const text = "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
+  deliver("SoTietKiem_danhsach_" + stamp() + ".csv", text, "text/csv").then(r => { if (r === "ok") toast("Đã tạo file Excel"); else if (r === "fail") toast("Máy chưa cho lưu file ở chế độ xem thử."); });
+}
+function restore(){
+  openSheet(`<h2>Khôi phục từ bản sao lưu</h2><p class="sub" style="margin:0">Chọn file .json đã sao lưu. Dữ liệu hiện tại trên máy sẽ được thay bằng bản sao lưu.</p>
+    <div class="field"><label for="r-file">File sao lưu</label><input id="r-file" type="file" accept=".json,application/json,text/plain"></div>
+    <div class="field" id="r-pinf" hidden><label for="r-pin">Mã khóa của bản sao lưu</label><input id="r-pin" type="password" inputmode="numeric" autocomplete="off"></div>
+    <span class="err" id="r-err" hidden></span>
+    <div class="actions"><button type="button" class="btn" data-close>Hủy</button><button type="button" class="btn primary" id="r-go">Khôi phục</button></div>`,
+  (el, close) => {
+    const g = s => el.querySelector(s); let obj = null;
+    const err = m => { g("#r-err").textContent = m; g("#r-err").hidden = !m; };
+    g("#r-file").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader();
+      rd.onload = () => { try { obj = JSON.parse(rd.result); err(""); g("#r-pinf").hidden = !obj.enc; } catch(_) { obj = null; err("File không đọc được. Hãy chọn đúng file sao lưu .json."); } }; rd.readAsText(f); });
+    g("#r-go").onclick = async () => {
+      if (!obj) { err("Hãy chọn file sao lưu."); return; }
+      let st = obj, key = null, salt = null;
+      if (obj.enc) { try { const r = await openSealed(obj, g("#r-pin").value); st = r.state; key = r.key; salt = r.salt; } catch(_) { err("Mã khóa không đúng với bản sao lưu này."); return; } }
+      if (!st || !Array.isArray(st.customers) || !Array.isArray(st.accounts)) { err("File không phải bản sao lưu của Sổ Tiết Kiệm."); return; }
+      close();
+      const ok = await confirmSheet("Thay dữ liệu bằng bản sao lưu?", "Bản sao lưu có " + st.customers.length + " khách hàng và " + st.accounts.length + " sổ.", "Khôi phục");
+      if (!ok) return;
+      S = {v:1, demo:!!st.demo, org:Object.assign(defaultOrg(), st.org||{}), customers:st.customers, accounts:st.accounts, lastBackup:st.lastBackup||null, hideInstall:S.hideInstall, hidePinTip:st.hidePinTip};
+      if (key) { cryptoKey = key; keySalt = salt; encrypted = true; }
+      ui.cust = null; await save(); render(); toast("Đã khôi phục " + st.accounts.length + " sổ");
+    };
+  });
+}
+
+/* ---------- PIN ---------- */
+function setPin(){
+  openSheet(`<h2>${encrypted ? "Đổi mã khóa" : "Đặt mã khóa"}</h2><p class="sub" style="margin:0">Dùng 6 chữ số trở lên. <b>Nếu quên mã sẽ không mở được dữ liệu</b>, chỉ có thể khôi phục từ bản sao lưu. Hãy ghi mã ra nơi an toàn.</p>
+    <div class="field"><label for="p1">Mã khóa mới</label><input id="p1" type="password" inputmode="numeric" autocomplete="new-password"></div>
+    <div class="field"><label for="p2">Nhập lại mã khóa</label><input id="p2" type="password" inputmode="numeric" autocomplete="new-password"></div>
+    <span class="err" id="p-err" hidden></span>
+    <div class="actions"><button type="button" class="btn" data-close>Hủy</button><button type="button" class="btn primary" id="p-sv">Lưu mã</button></div>`,
+  (el, close) => {
+    el.querySelector("#p-sv").onclick = async () => {
+      const p1 = el.querySelector("#p1").value, p2 = el.querySelector("#p2").value, e = el.querySelector("#p-err");
+      const m = p1.length < 6 ? "Mã khóa cần ít nhất 6 ký tự." : (p1 !== p2 ? "Hai lần nhập không giống nhau." : "");
+      if (m) { e.textContent = m; e.hidden = false; return; }
+      if (!window.crypto || !crypto.subtle) { e.textContent = "Máy này không hỗ trợ mã hóa."; e.hidden = false; return; }
+      keySalt = crypto.getRandomValues(new Uint8Array(16)); cryptoKey = await deriveKey(p1, keySalt); encrypted = true;
+      await save(); close(); render(); toast("Đã bật mã khóa. Nên sao lưu lại để có bản mã hóa.");
+    };
+  });
+}
+async function removePin(){
+  const ok = await confirmSheet("Tắt mã khóa?", "Dữ liệu sẽ được lưu trên máy ở dạng không mã hóa.", "Tắt mã khóa", true);
+  if (!ok) return; encrypted = false; cryptoKey = null; keySalt = null; await save(); render(); toast("Đã tắt mã khóa");
+}
+function showLock(raw){
+  S = null; $("#layer").innerHTML = ""; $("#printArea").innerHTML = "";
+  $("#lockLayer").innerHTML = `<div class="lock"><div class="box"><h2>Sổ Tiết Kiệm</h2><p class="muted">Nhập mã khóa để mở dữ liệu</p>
+    <form id="lk"><input id="lk-pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="Mã khóa"></form>
+    <button type="button" class="btn primary" id="lk-go">Mở khóa</button><span class="err" id="lk-err" hidden></span>
+    <button type="button" class="link" id="lk-forgot">Quên mã khóa?</button></div></div>`;
+  const go = async () => {
+    const pin = $("#lk-pin").value; if (!pin) return;
+    $("#lk-go").disabled = true; $("#lk-go").textContent = "Đang mở…";
+    try { const r = await openSealed(raw, pin); S = r.state; cryptoKey = r.key; keySalt = r.salt; encrypted = true; $("#lockLayer").innerHTML = ""; render(); }
+    catch(_) { const e = $("#lk-err"); e.textContent = "Mã khóa không đúng."; e.hidden = false; $("#lk-go").disabled = false; $("#lk-go").textContent = "Mở khóa"; $("#lk-pin").select(); }
+  };
+  $("#lk").addEventListener("submit", e => { e.preventDefault(); go(); });
+  $("#lk-go").onclick = go;
+  $("#lk-forgot").onclick = () => {
+    const box = $(".lock .box");
+    box.innerHTML = `<h2>Quên mã khóa</h2><p class="muted">Không thể mở dữ liệu đã mã hóa khi không có mã. Anh có thể xóa dữ liệu trên máy rồi khôi phục từ bản sao lưu (cần mã của bản sao lưu đó, hoặc bản chưa mã hóa).</p>
+      <button type="button" class="btn" id="lk-back">Quay lại nhập mã</button><button type="button" class="btn danger" id="lk-wipe">Xóa dữ liệu trên máy</button>`;
+    $("#lk-back").onclick = () => showLock(raw);
+    $("#lk-wipe").onclick = () => { box.innerHTML = `<h2>Xóa hẳn dữ liệu?</h2><p class="muted">Toàn bộ khách hàng và sổ trên máy sẽ mất. Không hoàn tác được.</p><button type="button" class="btn" id="lk-back2">Thôi</button><button type="button" class="btn danger" id="lk-wipe2">Xóa hẳn</button>`;
+      $("#lk-back2").onclick = () => showLock(raw);
+      $("#lk-wipe2").onclick = () => { try { localStorage.removeItem(KEY); } catch(_){} encrypted = false; cryptoKey = null; S = demoState(); S.demo = false; S.customers = []; S.accounts = []; $("#lockLayer").innerHTML = ""; save(); render(); };
+    };
+  };
+  setTimeout(() => { const p = $("#lk-pin"); if (p) p.focus(); }, 50);
+}
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else if (encrypted && S && hiddenAt && Date.now() - hiddenAt > 120000) { saveChain.then(() => { const raw = readRaw(); if (raw && raw.enc) showLock(raw); }); }
+});
+
+/* ---------- Events ---------- */
+document.addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t || !S) return;
+  if (t.dataset.v) { ui.view = t.dataset.v; ui.cust = null; ui.q = ""; render(); window.scrollTo(0,0); return; }
+  if (t.dataset.cust) { ui.cust = t.dataset.cust; ui.showClosed = false; render(); window.scrollTo(0,0); return; }
+  if (t.dataset.acc) { editAccount(t.dataset.acc); return; }
+  if (t.id === "fab") {
+    if (!(await leaveDemo())) return;
+    if (ui.view === "kh" && ui.cust && custOf(ui.cust)) editAccount(null, ui.cust); else editCustomer(null);
+    return;
+  }
+  const act = t.dataset.act; if (!act) return;
+  if (act === "backList") { ui.cust = null; render(); }
+  else if (act === "editCust") editCustomer(ui.cust);
+  else if (act === "addAcc") { if (await leaveDemo()) { if (ui.cust && custOf(ui.cust)) editAccount(null, ui.cust); else editCustomer(null); } }
+  else if (act === "statement") statement(custOf(ui.cust));
+  else if (act === "toggleClosed") { ui.showClosed = !ui.showClosed; render(); }
+  else if (act === "hideInstall") { S.hideInstall = true; await save(); render(); }
+  else if (act === "hidePinTip") { S.hidePinTip = true; await save(); render(); }
+  else if (act === "clearDemo") { const ok = await confirmSheet("Xóa dữ liệu mẫu?", "Khách hàng mẫu và các sổ mẫu sẽ bị xóa.", "Xóa mẫu", true); if (ok) { S.customers = []; S.accounts = []; S.demo = false; ui.cust = null; await save(); render(); toast("Đã xóa dữ liệu mẫu"); } }
+  else if (act === "backup") backup();
+  else if (act === "restore") restore();
+  else if (act === "csv") csv();
+  else if (act === "editOrg") editOrg();
+  else if (act === "setPin") setPin();
+  else if (act === "removePin") removePin();
+  else if (act === "lockNow") { await saveChain; const raw = readRaw(); if (raw && raw.enc) showLock(raw); }
+  else if (act === "wipe") { const ok = await confirmSheet("Xóa toàn bộ?", "Mọi khách hàng và sổ tiết kiệm trên máy sẽ bị xóa. Không hoàn tác được. Nên sao lưu trước.", "Xóa toàn bộ", true); if (ok) { S.customers = []; S.accounts = []; S.demo = false; ui.cust = null; await save(); render(); toast("Đã xóa toàn bộ"); } }
+});
+document.addEventListener("input", e => {
+  if (e.target.id === "q") { ui.q = e.target.value; const p = e.target.selectionStart; render(); const q = $("#q"); if (q) { q.focus(); try { q.setSelectionRange(p,p); } catch(_){} } }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && sheetClose) sheetClose(); });
+window.addEventListener("afterprint", () => { $("#printArea").innerHTML = ""; });
+
+/* ---------- Boot ---------- */
+const raw = readRaw();
+if (raw && raw.enc) showLock(raw);
+else {
+  S = (raw && Array.isArray(raw.customers)) ? raw : demoState();
+  S.org = Object.assign(defaultOrg(), S.org || {});
+  render();
+}
+if ("serviceWorker" in navigator && location.protocol === "https:" && window.self === window.top) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+})();
+</script>
+
+</body>
+</html>
